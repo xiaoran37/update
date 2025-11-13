@@ -1,25 +1,16 @@
-# collect-tv-txt
+![IPTV](https://raw.githubusercontent.com/xiaoran67/update/refs/heads/main/library/draw/draw0065.png)
 
-## TV source
-> 声明：内容均来自网络，仅供个人测试学习技术交流使用，严禁商用，如有侵权，请联系删除。
+# IPTV subscribe source a
 
-| 类别  | 文件名  | 更新频率                                       | LINK |
-|-------|-------|------------------------------------------------|------------|
-|直播源| （xxxx.txt） |每日 |  |
-|直播源| （xxxx.m3u） |每日 |  |
-|黑名单| （blacklist_auto.txt） |  不定时 | 无效直播源自动过滤   |
-|白名单| （whitelist_auto.txt） |  不定时 | 高响应源汇至直播源   |
+一个可高度自定义的IPTV接口更新项目📺，自定义频道菜单，自动获取直播源，测速验效后生成可用的结果，可实现『✨秒播级体验🚀』
 
-## 小工具
-
-> 主页: https://ghproxy.net/https://raw.githubusercontent.com/
-
-> json效验:
-http://www.esjson.com/jsontoget.html
-
-![image](./iptv/png/draw0065.png)
-
-## Star History
-
-
+## 快速上手
+### 部署配置
+1. 进入仓库：
+   - 打开库 https://github.com/xiaoran67/zba
+2. 修改配置：
+   - 订阅源（`config/subscribe.txt`）：支持txt和m3u地址作为订阅。
+   - 源排序（`config/demo.txt`）：支持demo.txt模版来排序分组和频道名称
+3. 运行更新：
+   - 首次执行工作流需要您手动触发，后续执行（默认UTC时间0:00，北京时间8:00）将自动触发。
 
