@@ -1,4 +1,4 @@
-name: 'Live Stream Subscription Update main ☞ ✔'
+name: 'Live Stream Subscription Update main'
 on:
   schedule:
     - cron: '50 20 * * *'
