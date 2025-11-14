@@ -14,81 +14,129 @@ jobs:
   run_job:
     runs-on: ubuntu-latest
     permissions:
-      contents: write  # 确保有写入权限
+      contents: write  # 确保仓库写入权限
+      actions: read    # 读取工作流状态（错误捕获用）
 
     steps:
     - name: Checkout repository
-      uses: actions/checkout@v2
+      uses: actions/checkout@v4  # 升级到最新稳定版
       with:
-        ref: main  # 明确拉取main分支
+        ref: main
+        fetch-depth: 0  # 拉取完整历史，避免冲突
 
-    # 新增：强制同步远程代码（应对仓库重建）
-    - name: 强制同步远程代码
-      run: git fetch --prune && git reset --hard origin/main
+    - name: 强制同步远程代码（修复仓库重建场景）
+      run: |
+        git fetch origin main --prune
+        git reset --hard origin/main
+        git clean -fd  # 清理未跟踪文件/目录，避免残留干扰
 
     - name: Set up Python
-      uses: actions/setup-python@v2
+      uses: actions/setup-python@v5  # 升级依赖，适配3.10+
       with:
         python-version: '3.10'
-        
+        cache: 'pip'  # 缓存依赖，加速执行
+
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        
-    - name: Run Python script (首次生成文件)
-      run: python assets/freetv/freetv.py  # 脚本路径不变，仅输出路径改了
+        # 若脚本有依赖，添加 requirements.txt 安装（根据实际情况调整）
+        if [ -f "assets/freetv/requirements.txt" ]; then
+          pip install -r assets/freetv/requirements.txt
+        fi
 
-    - name: Upload generated files
+    - name: 创建输出目录（容错处理）
+      run: mkdir -p output/freetv history/freetv  # 确保目录存在，避免脚本执行失败
+
+    - name: 运行Python脚本生成文件
+      run: |
+        # 执行脚本并输出日志，便于排查失败原因
+        python assets/freetv/freetv.py 2>&1 | tee output/freetv/script_execution.log
+      id: script_run  # 标记步骤ID，用于后续错误判断
+
+    - name: 校验生成文件是否存在
+      run: |
+        # 定义必须存在的文件列表
+        required_files=(
+          "output/freetv/freetv_output.txt"
+          "output/freetv/freetv_output_cctv.txt"
+          "output/freetv/freetv_output_ws.txt"
+          "output/freetv/freetv_output_other.txt"
+        )
+        # 逐个检查文件
+        for file in "${required_files[@]}"; do
+          if [ ! -f "$file" ]; then
+            echo "❌ 错误：必需文件 $file 不存在！"
+            exit 1
+          elif [ ! -s "$file" ]; then
+            echo "❌ 错误：文件 $file 为空！"
+            exit 1
+          fi
+        done
+        echo "✅ 所有生成文件均存在且非空"
+
+    - name: 上传生成文件和日志（调试用）
       uses: actions/upload-artifact@v4
       with:
         name: freetv-generated-files
         path: |
-          output/freetv/freetv_output.txt
-          output/freetv/freetv_output_cctv.txt
-          output/freetv/freetv_output_ws.txt
-          output/freetv/freetv_output_other.txt
-          
-    - name: Commit and push changes
+          output/freetv/*.txt
+          output/freetv/script_execution.log
+        retention-days: 7  # 日志保留7天，节省存储空间
+
+    - name: 清理3天前的归档文件
+      run: |
+        echo "🗑️ 清理3天前的旧归档文件"
+        find history/freetv -name "*.zip" -type f -mtime +3 -delete || echo "无旧文件可清理"
+
+    - name: 生成并打包归档文件
+      run: |
+        # 使用标准化时间格式（避免空格导致的zip命名问题）
+        current_datetime=$(date +'%Y%m%d_%H%M%S')
+        zip_filename="history/freetv/${current_datetime}_freetv_output.zip"
+        # 打包所有输出文件，保留相对路径结构，避免文件丢失
+        zip -r "${zip_filename}" output/freetv/*.txt
+        # 校验zip包完整性
+        zip -T "${zip_filename}" || {
+          echo "❌ zip包损坏，打包失败！"
+          exit 1
+        }
+        echo "✅ 归档文件生成成功：${zip_filename}"
+        echo "ZIP_FILENAME=${zip_filename}" >> $GITHUB_ENV  # 保存文件名到环境变量
+
+    - name: 提交并推送修改
       run: |
         # 配置Git用户信息
         git config --local user.email "actions@github.com"
         git config --local user.name "GitHub Actions"
         
-        # 强制重置工作区，放弃未提交修改
-        git reset --hard HEAD
-        
-        # 拉取远程最新代码（优化冲突处理）
+        # 拉取最新代码，避免推送冲突
         git pull origin main --rebase --autostash || {
-          echo "变基冲突，自动用远程最新代码覆盖本地";
-          git rebase --abort;
-          git pull origin main --force;
+          echo "⚠️  变基冲突，使用远程代码覆盖本地"
+          git rebase --abort
+          git pull origin main --force
         }
         
-        # 重新生成文件
-        python assets/freetv/freetv.py  # 脚本路径不变，仅输出路径改了
+        # 添加所有变更文件
+        git add output/freetv/*.txt "${{ env.ZIP_FILENAME }}"
+        # 仅在有变更时提交
+        git diff --quiet --exit-code || {
+          git commit -m ":tv: Update freetv data - ${current_datetime}"
+          echo "✅ 提交成功"
+        }
         
-        # 确保history/freetv目录存在
-        mkdir -p history/freetv
-        
-        # 核心：清理3天前的旧归档文件
-        find history/freetv -name "*.zip" -type f -mtime +3 -delete
-        
-        # 提交主文件修改（路径改为output/freetv）
-        git add output/freetv/freetv_output.txt output/freetv/freetv_output_cctv.txt output/freetv/freetv_output_ws.txt output/freetv/freetv_output_other.txt
-        git commit -m ":tv: $(date +'%Y-%m-%d %H:%M:%S')" || echo "No main file changes to commit"
-        
-        # 生成并提交新的zip归档文件（源文件路径改为output/freetv）
-        current_datetime=$(date +'%Y-%m-%d %H:%M:%S')
-        zip_filename="history/freetv/${current_datetime}_freetv_output.zip"
-        zip -j "${zip_filename}" output/freetv/freetv_output.txt
-        git add "${zip_filename}"
-        git commit -m ":tv: ${current_datetime}" || echo "No zip file changes to commit"
-        
-        # 推送修改
-        git push origin main --force-with-lease || git push origin main --force
-        
-    - name: Push changes (fallback)
+        # 安全推送（优先使用--force-with-lease，避免覆盖他人修改）
+        git push origin main --force-with-lease || {
+          echo "⚠️ --force-with-lease失败，使用--force兜底"
+          git push origin main --force
+        }
+
+    - name: 推送失败兜底方案
+      if: failure() && steps.script_run.outcome == 'success'  # 仅脚本执行成功但推送失败时触发
       uses: ad-m/github-push-action@master
       with:
         github_token: ${{ secrets.GITHUB_TOKEN }}
-        branch: main  # 明确指定推送分支
+        branch: main
+        force: true
+        files: |
+          output/freetv/*.txt
+          history/freetv/*.zip
