@@ -1,0 +1,341 @@
+name: Universal Cross-Platform Sync (GitHub/Gitee/GitCode)
+
+on:
+  schedule:
+    - cron: '5 22 * * *'  # UTC 22:05 (北京时间次日6:05)
+  workflow_dispatch:
+    inputs:
+      # 平台选择
+      sync_platform:
+        description: '同步目标平台'
+        type: choice
+        required: true
+        options:
+          - 'github'
+          - 'gitee'
+          - 'gitcode'
+        default: 'github'
+      
+      # 源仓库配置
+      source_repo:
+        description: '源仓库（用户/仓库名@分支）'
+        type: string
+        required: true
+        default: 'xiaoran67/update@main'
+      source_folder:
+        description: '源文件夹路径'
+        type: string
+        required: false
+        default: 'output'
+      
+      # 目标仓库配置
+      target_repo:
+        description: '目标仓库名'
+        type: string
+        required: true
+        default: 'update'
+      target_folder:
+        description: '目标文件夹路径'
+        type: string
+        required: false
+        default: 'output'
+      
+      # GitHub专用配置
+      sync_strategy:
+        description: 'GitHub同步策略（仅GitHub平台有效）'
+        type: choice
+        required: false
+        options:
+          - '增量'
+          - '覆盖'
+        default: '增量'
+      commit_template:
+        description: '提交信息模板（仅GitHub平台有效）'
+        type: choice
+        required: false
+        options:
+          - '仅时间'
+          - '同步说明'
+          - '自定义'
+        default: '仅时间'
+      custom_commit_msg:
+        description: '自定义提交信息（选"自定义"时填写）'
+        type: string
+        required: false
+        default: ''
+      
+      # Token配置
+      source_token_name:
+        description: '源仓库Token'
+        type: string
+        required: true
+        default: 'XIAORAN67_GITHUB_TOKEN'
+      target_token_name:
+        description: '目标平台Token'
+        type: string
+        required: true
+        default: 'XIAORAN67_GITEE_TOKEN'
+
+jobs:
+  universal-sync:
+    runs-on: ubuntu-latest
+    steps:
+      # 1. 环境检查和配置解析
+      - name: 🧩 解析配置信息
+        id: parse_config
+        run: |
+          echo "SYNC_PLATFORM=${{ inputs.sync_platform }}" >> $GITHUB_ENV
+          
+          # 解析源仓库
+          if echo "${{ inputs.source_repo }}" | grep -qE '^[a-zA-Z0-9-]+/[a-zA-Z0-9-]+@[a-zA-Z0-9-]+$'; then
+            IFS='/@' read -r source_user source_repo source_branch <<< "${{ inputs.source_repo }}"
+            echo "SOURCE_USER=${source_user}" >> $GITHUB_ENV
+            echo "SOURCE_REPO=${source_repo}" >> $GITHUB_ENV
+            echo "SOURCE_BRANCH=${source_branch}" >> $GITHUB_ENV
+          else
+            echo "❌ 源仓库格式错误" && exit 1
+          fi
+          
+          echo "SOURCE_FOLDER=${{ inputs.source_folder }}" >> $GITHUB_ENV
+          echo "TARGET_REPO=${{ inputs.target_repo }}" >> $GITHUB_ENV
+          echo "TARGET_FOLDER=${{ inputs.target_folder }}" >> $GITHUB_ENV
+          echo "SYNC_STRATEGY=${{ inputs.sync_strategy }}" >> $GITHUB_ENV
+          echo "COMMIT_TEMPLATE=${{ inputs.commit_template }}" >> $GITHUB_ENV
+          echo "CUSTOM_COMMIT_MSG=${{ inputs.custom_commit_msg }}" >> $GITHUB_ENV
+
+      # 2. Token校验
+      - name: 🔑 校验Token
+        run: |
+          if [ -z "${{ secrets[inputs.source_token_name] }}" ]; then
+            echo "❌ 源Token不存在: ${{ inputs.source_token_name }}" && exit 1
+          fi
+          if [ -z "${{ secrets[inputs.target_token_name] }}" ]; then
+            echo "❌ 目标Token不存在: ${{ inputs.target_token_name }}" && exit 1
+          fi
+          echo "✅ Token校验通过"
+
+      # 3. 检出源仓库
+      - name: 📥 检出源仓库
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ env.SOURCE_USER }}/${{ env.SOURCE_REPO }}
+          ref: ${{ env.SOURCE_BRANCH }}
+          path: source_repo
+          token: ${{ secrets[inputs.source_token_name] }}
+          fetch-depth: 1
+
+      # 4. 准备目标仓库
+      - name: 📦 准备目标仓库
+        id: prepare_target
+        run: |
+          TARGET_TOKEN="${{ secrets[inputs.target_token_name] }}"
+          
+          case "${{ env.SYNC_PLATFORM }}" in
+            "github")
+              # GitHub目标仓库
+              TARGET_URL="https://${TARGET_TOKEN}@github.com/${{ env.SOURCE_USER }}/${{ env.TARGET_REPO }}.git"
+              ;;
+            "gitee")
+              # Gitee目标仓库（固定用户xiaoran67）
+              TARGET_URL="https://xiaoran67:${TARGET_TOKEN}@gitee.com/xiaoran67/${{ env.TARGET_REPO }}.git"
+              ;;
+            "gitcode")
+              # GitCode目标仓库（固定用户xiaoran79）
+              TARGET_URL="https://xiaoran79:${TARGET_TOKEN}@gitcode.com/xiaoran79/${{ env.TARGET_REPO }}.git"
+              ;;
+          esac
+          
+          echo "TARGET_URL=${TARGET_URL}" >> $GITHUB_ENV
+          
+          # 克隆目标仓库
+          git clone --depth=1 "${TARGET_URL}" target_repo || echo "ℹ️ 目标仓库可能不存在，将在同步时处理"
+
+      # 5. 安装依赖
+      - name: 🛠️ 安装依赖
+        run: |
+          sudo apt-get update && sudo apt-get install -y rsync jq
+
+      # 6. 平台专用同步逻辑
+      - name: 🚀 执行同步
+        id: sync_execution
+        run: |
+          set -e
+          
+          case "${{ env.SYNC_PLATFORM }}" in
+            "github")
+              echo "🔄 执行GitHub文件夹同步（时间戳+大小校验）..."
+              source ./scripts/github_sync.sh
+              ;;
+            "gitee")
+              echo "🔄 执行Gitee文件夹增量同步（哈希校验）..."
+              source ./scripts/gitee_sync.sh
+              ;;
+            "gitcode")
+              echo "🔄 执行GitCode文件夹增量同步（哈希校验）..."
+              source ./scripts/gitcode_sync.sh
+              ;;
+            *)
+              echo "❌ 不支持的平台" && exit 1
+              ;;
+          esac
+
+      # 7. 推送更新
+      - name: 📤 推送更新
+        if: steps.sync_execution.outputs.changes_detected == 'true'
+        run: |
+          cd target_repo
+          
+          # 配置Git身份
+          git config user.name "Universal Sync Bot"
+          git config user.email "universal-sync@noreply.github.com"
+          git add -A
+          
+          # 生成提交信息
+          CURRENT_TIME=$(TZ='Asia/Shanghai' date +'%Y-%m-%d %H:%M:%S')
+          
+          case "${{ env.SYNC_PLATFORM }}" in
+            "github")
+              # GitHub使用原有提交信息逻辑
+              if [ "${{ env.COMMIT_TEMPLATE }}" = "仅时间" ]; then
+                COMMIT_MSG="🚀 ${CURRENT_TIME}"
+              elif [ "${{ env.COMMIT_TEMPLATE }}" = "同步说明" ]; then
+                SRC_INFO="${{ env.SOURCE_USER }}/${{ env.SOURCE_REPO }}:${{ env.SOURCE_BRANCH }}[${{ env.SOURCE_FOLDER }}]"
+                TGT_INFO="${{ env.SOURCE_USER }}/${{ env.TARGET_REPO }}:${{ env.SOURCE_BRANCH }}[${{ env.TARGET_FOLDER }}]"
+                COMMIT_MSG="🔄 同步（时间戳+大小校验） ${SRC_INFO} → ${TGT_INFO}（${CURRENT_TIME}）"
+              else
+                COMMIT_MSG="${{ env.CUSTOM_COMMIT_MSG }}"
+                [ -z "$COMMIT_MSG" ] && COMMIT_MSG="🚀 ${CURRENT_TIME}"
+              fi
+              ;;
+            "gitee"|"gitcode")
+              # Gitee和GitCode使用简单时间戳
+              COMMIT_MSG="✅ ${CURRENT_TIME}"
+              ;;
+          esac
+          
+          git commit -m "${COMMIT_MSG}"
+          
+          # 根据平台和策略决定推送方式
+          if [ "${{ env.SYNC_PLATFORM }}" = "github" ] && [ "${{ env.SYNC_STRATEGY }}" = "覆盖" ]; then
+            git push origin HEAD --force
+          else
+            git push origin HEAD
+          fi
+
+      # 8. 结果报告
+      - name: 📊 同步报告
+        run: |
+          if [ "${{ steps.sync_execution.outputs.changes_detected }}" = "true" ]; then
+            echo "✅ 同步完成！"
+            echo "📌 平台: ${{ env.SYNC_PLATFORM }}"
+            echo "📌 源: ${{ env.SOURCE_USER }}/${{ env.SOURCE_REPO }}:${{ env.SOURCE_BRANCH }}"
+            echo "📌 目标: ${{ env.TARGET_REPO }}"
+            echo "📌 同步路径: ${{ env.SOURCE_FOLDER }} → ${{ env.TARGET_FOLDER }}"
+          else
+            echo "ℹ️ 无需同步：内容完全一致"
+          fi
+
+  # 辅助脚本准备
+  prepare-scripts:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 📝 创建同步脚本
+        run: |
+          mkdir -p scripts
+          
+          # GitHub同步脚本（时间戳+大小校验）
+          cat > scripts/github_sync.sh << 'EOF'
+          # GitHub文件夹同步逻辑（第一个工作流核心）
+          SOURCE_PATH="source_repo/${{ env.SOURCE_FOLDER }}"
+          [ -z "${{ env.SOURCE_FOLDER }}" ] && SOURCE_PATH="source_repo"
+          TARGET_PATH="target_repo/${{ env.TARGET_FOLDER }}"
+          [ -z "${{ env.TARGET_FOLDER }}" ] && TARGET_PATH="target_repo"
+          mkdir -p "${TARGET_PATH}"
+          
+          export TZ='Asia/Shanghai'
+          
+          if [ "${{ env.SYNC_STRATEGY }}" = "增量" ]; then
+            rsync -av --times --exclude=".git/" "${SOURCE_PATH}/" "${TARGET_PATH}/"
+          else
+            rsync -av --delete --force --times --exclude=".git/" "${SOURCE_PATH}/" "${TARGET_PATH}/"
+          fi
+          
+          cd target_repo
+          if git status --porcelain | grep -q .; then
+            echo "changes_detected=true" >> $GITHUB_OUTPUT
+          else
+            echo "changes_detected=false" >> $GITHUB_OUTPUT
+          fi
+          EOF
+          
+          # Gitee同步脚本（哈希校验）
+          cat > scripts/gitee_sync.sh << 'EOF'
+          # Gitee文件夹增量同步（第二个工作流核心）
+          SOURCE_PATH="source_repo/${{ env.SOURCE_FOLDER }}"
+          TARGET_PATH="target_repo/${{ env.TARGET_FOLDER }}"
+          mkdir -p "${TARGET_PATH}"
+          
+          # 计算源文件夹哈希
+          cd source_repo
+          SRC_HASH=$(find "${{ env.SOURCE_FOLDER }}" -type f -exec sha1sum {} + | sort | sha1sum | awk '{print $1}')
+          echo "源文件夹哈希: ${SRC_HASH}"
+          
+          # 计算目标文件夹哈希
+          cd ../target_repo
+          TGT_HASH=$(find "${{ env.TARGET_FOLDER }}" -type f -exec sha1sum {} + 2>/dev/null | sort | sha1sum | awk '{print $1}')
+          if [ -z "$TGT_HASH" ]; then
+            TGT_HASH="0000000000000000000000000000000000000000"
+          fi
+          echo "目标文件夹哈希: ${TGT_HASH}"
+          
+          if [ "$SRC_HASH" != "$TGT_HASH" ]; then
+            echo "🔄 内容不一致，执行增量同步"
+            rsync -av --delete "${SOURCE_PATH}/" "${TARGET_PATH}/"
+            
+            # 再次检查是否有实际变化
+            if git status --porcelain | grep -q .; then
+              echo "changes_detected=true" >> $GITHUB_OUTPUT
+            else
+              echo "changes_detected=false" >> $GITHUB_OUTPUT
+            fi
+          else
+            echo "✅ 内容一致，跳过同步"
+            echo "changes_detected=false" >> $GITHUB_OUTPUT
+          fi
+          EOF
+          
+          # GitCode同步脚本（哈希校验）
+          cat > scripts/gitcode_sync.sh << 'EOF'
+          # GitCode文件夹增量同步（第三个工作流核心）
+          SOURCE_PATH="source_repo/${{ env.SOURCE_FOLDER }}"
+          TARGET_PATH="target_repo/${{ env.TARGET_FOLDER }}"
+          mkdir -p "${TARGET_PATH}"
+          
+          # 计算源文件夹哈希
+          cd source_repo
+          SRC_HASH=$(find "${{ env.SOURCE_FOLDER }}" -type f -exec sha1sum {} + | sort | sha1sum | awk '{print $1}')
+          echo "源文件夹哈希: ${SRC_HASH}"
+          
+          # 计算目标文件夹哈希
+          cd ../target_repo
+          TGT_HASH=$(find "${{ env.TARGET_FOLDER }}" -type f -exec sha1sum {} + 2>/dev/null | sort | sha1sum | awk '{print $1}')
+          if [ -z "$TGT_HASH" ]; then
+            TGT_HASH="0000000000000000000000000000000000000000"
+          fi
+          echo "目标文件夹哈希: ${TGT_HASH}"
+          
+          if [ "$SRC_HASH" != "$TGT_HASH" ]; then
+            echo "🔄 内容不一致，执行增量同步"
+            rsync -av --delete "${SOURCE_PATH}/" "${TARGET_PATH}/"
+            
+            # 再次检查是否有实际变化
+            if git status --porcelain | grep -q .; then
+              echo "changes_detected=true" >> $GITHUB_OUTPUT
+            else
+              echo "changes_detected=false" >> $GITHUB_OUTPUT
+            fi
+          else
+            echo "✅ 内容一致，跳过同步"
+            echo "changes_detected=false" >> $GITHUB_OUTPUT
+          fi
+          EOF
