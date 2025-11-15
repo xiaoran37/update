@@ -1,4 +1,4 @@
-name: 🔄 Universal Folder Sync (Customizable)
+name: 🔄 Multi-platform Synchronous Update(Customizable)
 
 on:
   workflow_dispatch:
