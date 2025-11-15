@@ -1,4 +1,4 @@
-name: 🔄 Multi-platform Synchronous Update(Customizable)
+name: Multi-platform Synchronous Update (Customizable) 🔄 
 
 on:
   workflow_dispatch:
