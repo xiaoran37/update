@@ -15,7 +15,7 @@ on:
           - 'xiaoran67/update'
           - 'xiaoran67/xiaoran37'
           - 'xiaoran67/xiaoran67'
-          - 'all（所有仓库）'
+          - '所有源仓库'
         default: 'xiaoran67/core'
       
       # 目标仓库选择
@@ -28,7 +28,7 @@ on:
           - 'xiaoran37/update'
           - 'xiaoran37/xiaoran37'
           - 'xiaoran37/xiaoran67'
-          - 'all（所有仓库）'
+          - '所有目标仓库'
         default: 'xiaoran37/core'
       
       # 分支配置
@@ -45,12 +45,12 @@ on:
       
       # 文件夹配置
       source_folder:
-        description: '源仓库同步路径（留空=根目录）'
+        description: '源仓库子目录（留空=根目录）'
         type: string
         required: false
         default: ''
       target_folder:
-        description: '目标仓库接收路径（留空=根目录）'
+        description: '目标仓库子目录（留空=根目录）'
         type: string
         required: false
         default: ''
@@ -118,16 +118,16 @@ jobs:
           # 确定要同步的仓库对
           SYNC_PAIRS=""
           
-          # 情况1：源=all，目标=all → 所有映射对
-          if [ "${{ inputs.source_repo_choice }}" = "all（所有仓库）" ] && [ "${{ inputs.target_repo_choice }}" = "all（所有仓库）" ]; then
+          # 情况1：源=所有源仓库，目标=所有目标仓库 → 所有映射对
+          if [ "${{ inputs.source_repo_choice }}" = "所有源仓库" ] && [ "${{ inputs.target_repo_choice }}" = "所有目标仓库" ]; then
             echo "模式：所有源仓库 → 所有目标仓库（一对一映射）"
             while IFS=':' read -r source target; do
               SYNC_PAIRS="${SYNC_PAIRS}${source}:${target} "
               echo "添加映射对: ${source} → ${target}"
             done < repo_mapping.txt
           
-          # 情况2：源=all，目标=具体 → 只同步对应映射
-          elif [ "${{ inputs.source_repo_choice }}" = "all（所有仓库）" ]; then
+          # 情况2：源=所有源仓库，目标=具体 → 只同步对应映射
+          elif [ "${{ inputs.source_repo_choice }}" = "所有源仓库" ]; then
             TARGET_REPO="${{ inputs.target_repo_choice }}"
             echo "模式：所有源仓库 → 目标仓库: ${TARGET_REPO}"
             
@@ -143,8 +143,8 @@ jobs:
               echo "⚠️  警告：没有找到映射到 ${TARGET_REPO} 的源仓库"
             fi
           
-          # 情况3：源=具体，目标=all → 找出该源仓库对应的目标仓库
-          elif [ "${{ inputs.target_repo_choice }}" = "all（所有仓库）" ]; then
+          # 情况3：源=具体，目标=所有目标仓库 → 找出该源仓库对应的目标仓库
+          elif [ "${{ inputs.target_repo_choice }}" = "所有目标仓库" ]; then
             SOURCE_REPO="${{ inputs.source_repo_choice }}"
             echo "模式：源仓库: ${SOURCE_REPO} → 所有目标仓库"
             
@@ -202,7 +202,7 @@ jobs:
 
       # 3. 确认同步（如果是非标准映射）
       - name: ⚠️  确认同步操作
-        if: ${{ inputs.source_repo_choice != 'all（所有仓库）' && inputs.target_repo_choice != 'all（所有仓库）' }}
+        if: ${{ inputs.source_repo_choice != '所有源仓库' && inputs.target_repo_choice != '所有目标仓库' }}
         run: |
           SOURCE_REPO="${{ inputs.source_repo_choice }}"
           TARGET_REPO="${{ inputs.target_repo_choice }}"
@@ -295,6 +295,9 @@ jobs:
           # 创建临时目录
           TEMP_DIR=$(mktemp -d)
           cd "${TEMP_DIR}"
+          
+          # 安装依赖（如果需要的话）
+          sudo apt-get update >/dev/null 2>&1 || true
           
           # 检出源仓库
           echo "📥 检出源仓库..."
