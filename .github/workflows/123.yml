@@ -58,10 +58,8 @@ on:
         type: string
 
 env:
-  SOURCE_ACCOUNT: 'xiaoran67'
-  TARGET_ACCOUNT: 'xiaoran37'
+  SOURCE_ACCOUNT: 'xiaoran67'  # GitHub源账户
   SOURCE_TOKEN_NAME: 'XIAORAN67_GITHUB_TOKEN'
-  TARGET_TOKEN_NAME: 'XIAORAN37_GITHUB_TOKEN'
   BRANCH: 'main'
 
 jobs:
@@ -93,26 +91,48 @@ jobs:
             echo "should_run=false" >> $GITHUB_ENV
           fi
 
-      # 2. 设置仓库配置
+      # 2. 设置仓库配置（根据平台调整目标账户）
       - name: 🧩 设置仓库配置
         if: env.should_run == 'true'
         run: |
           echo "=== 仓库配置 ==="
           echo "仓库描述: ${{ env.REPO_DESC }}"
           echo "源仓库: ${{ env.SOURCE_ACCOUNT }}/${{ env.REPO_NAME }}@${{ env.BRANCH }}"
-          echo "目标仓库: ${{ env.TARGET_ACCOUNT }}/${{ env.REPO_NAME }}@${{ env.BRANCH }}"
+          
+          # 根据目标平台设置目标账户
+          TARGET_PLATFORM="${{ github.event.inputs.target_platform }}"
+          
+          case "$TARGET_PLATFORM" in
+            "github")
+              TARGET_ACCOUNT="xiaoran37"
+              TARGET_TOKEN_NAME="XIAORAN37_GITHUB_TOKEN"
+              echo "目标平台: GitHub (账户: $TARGET_ACCOUNT)"
+              ;;
+            "gitee")
+              TARGET_ACCOUNT="xiaoran67"  # Gitee账户与GitHub源账户相同
+              TARGET_TOKEN_NAME="XIAORAN67_GITEE_TOKEN"  # 需要不同的Token名称
+              echo "目标平台: Gitee (账户: $TARGET_ACCOUNT)"
+              ;;
+            "gitcode")
+              TARGET_ACCOUNT="xiaoran37"  # GitCode使用GitHub账户名
+              TARGET_TOKEN_NAME="XIAORAN37_GITCODE_TOKEN"  # 需要不同的Token名称
+              echo "目标平台: GitCode (账户: $TARGET_ACCOUNT)"
+              ;;
+          esac
+          
+          echo "目标仓库: $TARGET_ACCOUNT/${{ env.REPO_NAME }}@${{ env.BRANCH }}"
           
           # 基础配置
           echo "source_user=${{ env.SOURCE_ACCOUNT }}" >> $GITHUB_ENV
           echo "source_repo=${{ env.REPO_NAME }}" >> $GITHUB_ENV
           echo "source_branch=${{ env.BRANCH }}" >> $GITHUB_ENV
           
-          echo "target_user=${{ env.TARGET_ACCOUNT }}" >> $GITHUB_ENV
+          echo "target_user=$TARGET_ACCOUNT" >> $GITHUB_ENV
           echo "target_repo=${{ env.REPO_NAME }}" >> $GITHUB_ENV
           echo "target_branch=${{ env.BRANCH }}" >> $GITHUB_ENV
           
           echo "source_token_name=${{ env.SOURCE_TOKEN_NAME }}" >> $GITHUB_ENV
-          echo "target_token_name=${{ env.TARGET_TOKEN_NAME }}" >> $GITHUB_ENV
+          echo "target_token_name=$TARGET_TOKEN_NAME" >> $GITHUB_ENV
           
           # 文件夹路径处理
           SOURCE_FOLDER=$(echo "${{ github.event.inputs.source_folder }}" | xargs)
@@ -141,14 +161,34 @@ jobs:
         if: env.should_run == 'true'
         run: |
           echo "=== Token校验 ==="
+          SOURCE_TOKEN_NAME="${{ env.source_token_name }}"
+          TARGET_TOKEN_NAME="${{ env.target_token_name }}"
+          
           if [ -z "${{ secrets[env.source_token_name] }}" ]; then
-            echo "❌ 源仓库Token不存在: ${{ env.source_token_name }}"
+            echo "❌ 源仓库Token不存在: $SOURCE_TOKEN_NAME"
+            echo "请检查GitHub Secrets中是否有 $SOURCE_TOKEN_NAME"
             exit 1
           fi
+          
           if [ -z "${{ secrets[env.target_token_name] }}" ]; then
-            echo "❌ 目标仓库Token不存在: ${{ env.target_token_name }}"
+            echo "❌ 目标仓库Token不存在: $TARGET_TOKEN_NAME"
+            echo "请检查GitHub Secrets中是否有 $TARGET_TOKEN_NAME"
+            echo ""
+            echo "需要创建的Token:"
+            case "${{ env.target_platform }}" in
+              "github")
+                echo "- $TARGET_TOKEN_NAME: GitHub个人访问令牌，需要有repo权限"
+                ;;
+              "gitee")
+                echo "- $TARGET_TOKEN_NAME: Gitee私人令牌，需要有projects权限"
+                ;;
+              "gitcode")
+                echo "- $TARGET_TOKEN_NAME: GitCode私人令牌，需要有仓库读写权限"
+                ;;
+            esac
             exit 1
           fi
+          
           echo "✅ Token校验通过"
 
       # 4. 检查/创建目标仓库（仅GitHub平台）
@@ -212,7 +252,7 @@ jobs:
           fetch-depth: 0
           clean: true
 
-      # 7. 准备目标仓库
+      # 7. 准备目标仓库（支持多平台）
       - name: 📦 准备目标仓库
         if: env.should_run == 'true'
         run: |
@@ -223,12 +263,17 @@ jobs:
           case "${{ env.target_platform }}" in
             "github")
               TARGET_URL="https://${TARGET_TOKEN}@github.com/${{ env.target_user }}/${{ env.target_repo }}.git"
+              echo "使用GitHub平台"
               ;;
             "gitee")
+              # Gitee的URL格式：https://用户名:token@gitee.com/用户名/仓库名.git
               TARGET_URL="https://${{ env.target_user }}:${TARGET_TOKEN}@gitee.com/${{ env.target_user }}/${{ env.target_repo }}.git"
+              echo "使用Gitee平台（账户: ${{ env.target_user }}）"
               ;;
             "gitcode")
+              # GitCode的URL格式：https://用户名:token@gitcode.com/用户名/仓库名.git
               TARGET_URL="https://${{ env.target_user }}:${TARGET_TOKEN}@gitcode.com/${{ env.target_user }}/${{ env.target_repo }}.git"
+              echo "使用GitCode平台"
               ;;
           esac
           
@@ -249,6 +294,7 @@ jobs:
             git remote add origin "$TARGET_URL"
             git checkout -b ${{ env.target_branch }} || git checkout -b main
             cd ..
+            echo "ℹ️ 已初始化空仓库"
           else
             echo "✅ 目标仓库克隆成功"
           fi
@@ -310,7 +356,7 @@ jobs:
           echo "目标目录文件数: $(find "$TARGET_PATH" -type f | wc -l)"
           echo "目标目录大小: $(du -sh "$TARGET_PATH" | cut -f1)"
 
-      # 9. 检查是否有变化需要提交（使用你的检查逻辑）
+      # 9. 检查是否有变化需要提交
       - name: 🔍 检查文件变化
         if: env.should_run == 'true'
         id: check_changes
@@ -336,7 +382,7 @@ jobs:
             echo "changes_detected=false" >> $GITHUB_OUTPUT
           fi
 
-      # 10. 提交和推送变化（使用你的提交逻辑）
+      # 10. 提交和推送变化
       - name: 📤 提交并推送更改
         if: env.should_run == 'true' && steps.check_changes.outputs.changes_detected == 'true'
         run: |
@@ -347,7 +393,7 @@ jobs:
           git config user.name "Auto Sync Bot"
           git config user.email "sync-bot@noreply.github.com"
           
-          # 生成提交信息（使用你的模板变量）
+          # 生成提交信息
           CURRENT_TIME=$(TZ='Asia/Shanghai' date +'%H:%M:%S')
           CURRENT_DATE=$(TZ='Asia/Shanghai' date +'%Y-%m-%d')
           COMMIT_MSG="${{ env.commit_message }}"
@@ -400,7 +446,8 @@ jobs:
           
           if [ "${{ steps.check_changes.outputs.changes_detected }}" = "true" ]; then
             echo "✅ 同步任务完成 - 检测到变化并已提交"
-            echo "📝 提交哈希: $(cd target_repo && git log -1 --format='%H' 2>/dev/null || echo '无提交')"
+            COMMIT_HASH=$(cd target_repo && git log -1 --format='%H' 2>/dev/null || echo '无提交')
+            echo "📝 提交哈希: $COMMIT_HASH"
           else
             echo "ℹ️ 同步任务完成 - 无变化"
           fi
@@ -410,13 +457,15 @@ jobs:
           echo ""
           echo "📥 源仓库:"
           echo "   平台: GitHub"
-          echo "   仓库: ${{ env.source_user }}/${{ env.source_repo }}"
+          echo "   账户: ${{ env.source_user }}"
+          echo "   仓库: ${{ env.source_repo }}"
           echo "   分支: ${{ env.source_branch }}"
           echo "   目录: ${{ env.source_folder || '根目录' }}"
           echo ""
           echo "📤 目标仓库:"
           echo "   平台: ${{ env.target_platform }}"
-          echo "   仓库: ${{ env.target_user }}/${{ env.target_repo }}"
+          echo "   账户: ${{ env.target_user }}"
+          echo "   仓库: ${{ env.target_repo }}"
           echo "   分支: ${{ env.target_branch }}"
           echo "   目录: ${{ env.target_folder || '根目录' }}"
           echo ""
@@ -455,7 +504,26 @@ jobs:
           fi
           
           echo ""
-          echo "### 📦 已同步仓库"
+          echo "### 📦 账户配置"
+          echo "- **源账户 (GitHub)：** xiaoran67"
+          
+          case "${{ github.event.inputs.target_platform }}" in
+            "github")
+              echo "- **目标账户 (GitHub)：** xiaoran37"
+              echo "- **目标Token：** XIAORAN37_GITHUB_TOKEN"
+              ;;
+            "gitee")
+              echo "- **目标账户 (Gitee)：** xiaoran67"
+              echo "- **目标Token：** XIAORAN67_GITEE_TOKEN"
+              ;;
+            "gitcode")
+              echo "- **目标账户 (GitCode)：** xiaoran37"
+              echo "- **目标Token：** XIAORAN37_GITCODE_TOKEN"
+              ;;
+          esac
+          
+          echo ""
+          echo "### 📁 已同步仓库"
           echo "1. **core** - 核心仓库"
           echo "2. **update** - 更新仓库"
           echo "3. **xiaoran37** - 主仓库"
