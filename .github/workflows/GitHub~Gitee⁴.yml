@@ -1,4 +1,4 @@
-name: '🚀 GitHub → Gitee 同步 (core仓库)'
+name: '🚀 GitHub ↔ Gitee ④'
 
 on:
   workflow_dispatch:

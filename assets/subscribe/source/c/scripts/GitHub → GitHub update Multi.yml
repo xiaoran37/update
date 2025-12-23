@@ -1,4 +1,4 @@
-name: '🔀 xiaoran67☞xiaoran37 xiaoran67'
+name: '🔀 GitHub → GitHub 67→37 update'
 # Cross Repository Multi-Platform Sync
 # 跨仓库多平台同步（增量+覆盖）🔄🔀♻️⚡🚀🌐🔧✅
 on:
@@ -8,7 +8,7 @@ on:
       source_repo:
         description: '源仓库（格式：用户名/仓库名@分支）'
         required: true
-        default: 'xiaoran67/xiaoran67@main'
+        default: 'xiaoran67/update@main'
         type: string
       
       source_folder:
@@ -27,7 +27,7 @@ on:
       target_repo:
         description: '目标仓库（格式：用户名/仓库名@分支）'
         required: true
-        default: 'xiaoran37/xiaoran67@main'
+        default: 'xiaoran37/update@main'
         type: string
       
       target_folder:
