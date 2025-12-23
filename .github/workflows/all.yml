@@ -15,7 +15,6 @@ on:
         default: 'core'
         options:
           - 'core'
-          - 'inbox'
           - 'update'
           - 'xiaoran37'
           - 'xiaoran67'
@@ -23,7 +22,7 @@ on:
         description: '同步策略'
         type: choice
         required: true
-        default: '增量'
+        default: '覆盖'
         options:
           - '增量'
           - '覆盖'
@@ -57,7 +56,6 @@ jobs:
       matrix:
         include:
           - { repo: 'core' }
-          - { repo: 'inbox' }
           - { repo: 'update' }
           - { repo: 'xiaoran37' }
           - { repo: 'xiaoran67' }
