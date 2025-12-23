@@ -2026,7 +2026,6 @@ CCTV+2600247,https://cd-live-stream.news.cctvplus.com/live/smil:CHANNEL2.smil/pl
 重庆卫视,https://stream1.freetv.fun/zhong-qing-wei-shi-12.m3u8
 重庆卫视,https://stream1.freetv.fun/zhong-qing-wei-shi-4.m3u8
 重庆卫视,https://stream1.freetv.fun/zhong-qing-wei-shi-55.m3u8
-重庆卫视,https://stream1.freetv.fun/zhong-qing-wei-shi-79.ctv
 重庆卫视,https://stream1.freetv.fun/zhong-qing-wei-shi-57.m3u8
 重庆卫视,http://36.32.174.67:60080/newlive/live/hls/34/live.m3u8
 重庆卫视,http://183.11.239.36:808/hls/53/index.m3u8
@@ -2047,6 +2046,7 @@ CCTV+2600247,https://cd-live-stream.news.cctvplus.com/live/smil:CHANNEL2.smil/pl
 重庆卫视,http://171.113.208.108:4022/rtp/239.69.1.149:10530
 重庆卫视,http://27.191.202.231:19999/rtp/239.254.200.203:6323
 重庆卫视,http://180.105.201.157:9981/rtp/239.49.8.57:9830
+重庆卫视,https://stream1.freetv.fun/zhong-qing-wei-shi-79.ctv
 重庆卫视,http://123.191.15.105:1111/rtp/232.0.0.186:1234
 重庆卫视,http://124.64.223.204:8686/rtp/239.3.1.122:8160
 重庆卫视,https://stream1.freetv.fun/zhong-qing-wei-shi-90.m3u8
@@ -2711,7 +2711,6 @@ CCTV+2600247,https://cd-live-stream.news.cctvplus.com/live/smil:CHANNEL2.smil/pl
 河北卫视,https://stream1.freetv.fun/he-bei-wei-shi-64.m3u8
 河北卫视,https://stream1.freetv.fun/he-bei-wei-shi-13.m3u8
 河北卫视,https://stream1.freetv.fun/he-bei-wei-shi-56.ctv
-河北卫视,https://stream1.freetv.fun/he-bei-wei-shi-38.ctv
 河北卫视,https://stream1.freetv.fun/he-bei-wei-shi-7.m3u8
 河北卫视,http://120.211.62.180:8000/hls/19/index.m3u8
 河北卫视,http://58.57.40.22:9901/tsfile/live/1044_1.m3u8
@@ -4547,7 +4546,6 @@ CCTV+2600247,https://cd-live-stream.news.cctvplus.com/live/smil:CHANNEL2.smil/pl
 江苏城市,https://stream1.freetv.fun/675206b8446ce719bfb293b5a5296db3aa26521c9810de7c996838247cc56964.ctv
 江苏影视,https://stream1.freetv.fun/jiang-su-ying-shi-1.ctv
 江苏影视,https://stream1.freetv.fun/jiang-su-ying-shi-2.m3u8
-江苏影视,https://stream1.freetv.fun/jiang-su-ying-shi-5.ctv
 江苏影视,https://mgtv.ottiptv.cc/migu/626064697.m3u8?migutoken=6508bc5fae9f621ed6ec72d39eb7f60ab52c4b412a5ee7f5b612640ecccbde1f9584f0a97aebc090cb58f73e9e079ced87b059526a6614b5a9ad5a23ff4863d36adcc1ed699583e058fac3330e
 江苏影视,http://8.138.7.223/tv/migu3.php?id=jsys
 江苏影视,http://hlsztemgsplive.miguvideo.com:8080/wd_r2/jstv/jsyingshi/600/index.m3u8?msisdn=202512230802460a7068dc227647ac9e79214b15fd1361&mdspid=&spid=699067&netType=0&sid=5500260517&pid=2028597139&timestamp=20251223080246&Channel_ID=0116_2600037000-99000-200300220100002&ProgramID=626064697&ParentNodeID=-99&assertID=5500260517&client_ip=218.28.233.106&SecurityKey=20251223080246&promotionId=&mvid=5100186424&mcid=500020&playurlVersion=WX-A1-8.12.1-RELEASE&userid=&jmhm=&videocodec=h264&appCode=miguvideo_android&bean=mgspad&tid=android&conFee=0&encrypt=062339a7aa58e1f91c506523dfab22a2&sv=10004&ct=android
@@ -7371,7 +7369,6 @@ Nickelodeon,http://178.163.62.136:4022/udp/234.0.0.153:2000
 disney=,https://stream1.freetv.fun/disney-2.ctv
 disney channel,https://stream1.freetv.fun/disney-channel-31.m3u8
 disney channel,https://stream1.freetv.fun/disney-channel-1.m3u8
-disney xd,https://stream1.freetv.fun/disney-xd-8.m3u8
 momo亲子,https://stream1.freetv.fun/momoqin-zi-3.m3u8
 momo亲子,https://stream1.freetv.fun/momoqin-zi-2.m3u8
 momo亲子,https://stream1.freetv.fun/momoqin-zi-5.m3u8
@@ -8730,7 +8727,6 @@ salem news channel,https://stream1.freetv.fun/salem-news-channel-2.m3u8
 salem news channel,https://stream1.freetv.fun/salem-news-channel-1.m3u8
 cctv-4 中文国际,https://stream1.freetv.fun/cctv-4-zhong-wen-guo-ji-6.ctv
 global tv,https://stream1.freetv.fun/global-tv-4.m3u8
-tvp 1,https://stream1.freetv.fun/tvp-1-3.m3u8
 
 ⚽️体育频道,#genre#
 体育赛事,http://144.255.32.94:8288/rtp/239.21.2.44:5002
@@ -12096,7 +12092,6 @@ Zz1tai姿态,http://live.nctv.top/huya.php?id=333003
 []cctv4,https://stream1.freetv.fun/cctv4-79.m3u8
 []cctv5,https://stream1.freetv.fun/cctv5-77.m3u8
 []cctv6,https://stream1.freetv.fun/cctv6-27.m3u8
-[]cctv6电影,https://stream1.freetv.fun/cctv6dian-ying-1.ctv
 []cctv7,https://stream1.freetv.fun/cctv7-16.m3u8
 []cctv7,https://stream1.freetv.fun/cctv7-21.ctv
 []cctv7,https://stream1.freetv.fun/cctv7-34.m3u8
@@ -12226,6 +12221,7 @@ Zz1tai姿态,http://live.nctv.top/huya.php?id=333003
 []disney junior(asia)=,https://stream1.freetv.fun/disney-junior-7.ctv
 []disney xd(mas) =,https://stream1.freetv.fun/disney-xd-4.ctv
 []disney xd(mas) ==,https://stream1.freetv.fun/disney-xd-1.ctv
+[]disney xd,https://stream1.freetv.fun/disney-xd-8.m3u8
 []diy network =,https://stream1.freetv.fun/diy-network-2.ctv
 []diy network ==,https://stream1.freetv.fun/diy-network-1.ctv
 []diy network ==,https://stream1.freetv.fun/diy-network-3.ctv
@@ -12315,6 +12311,7 @@ Zz1tai姿态,http://live.nctv.top/huya.php?id=333003
 []france 24 ᴴᴰ,https://stream1.freetv.fun/france-24-hd-2.m3u8
 []freeдom,https://stream1.freetv.fun/freedom-1.m3u8
 []fresh news,https://stream1.freetv.fun/fresh-news-1.m3u8
+[]futura,https://stream1.freetv.fun/futura-1.m3u8
 []fx ==,https://stream1.freetv.fun/fx-5.ctv
 []fx ==,https://stream1.freetv.fun/fx-6.ctv
 []fx tv 2,https://stream1.freetv.fun/fx-tv-2-1.m3u8
@@ -12979,6 +12976,7 @@ Zz1tai姿态,http://live.nctv.top/huya.php?id=333003
 []tvn,https://stream1.freetv.fun/tvn-4.ctv
 []tvo,https://stream1.freetv.fun/tvo-2.m3u8
 []tvone,https://stream1.freetv.fun/tvone-3.ctv
+[]tvp 1,https://stream1.freetv.fun/tvp-1-3.m3u8
 []tvs,https://stream1.freetv.fun/tvs-3.m3u8
 []tvs,https://stream1.freetv.fun/tvs-4.m3u8
 []tvt zgorzelec,https://stream1.freetv.fun/tvt-zgorzelec-1.m3u8
@@ -13612,7 +13610,6 @@ Zz1tai姿态,http://live.nctv.top/huya.php?id=333003
 []经典港片电影,https://stream1.freetv.fun/jing-dian-gang-pian-dian-ying-1.ctv
 []经典港片电影,https://stream1.freetv.fun/jing-dian-gang-pian-dian-ying-2.ctv
 []经典电影重温,https://stream1.freetv.fun/jing-dian-dian-ying-zhong-wen-2.ctv
-[]经典香港电影,https://stream1.freetv.fun/jing-dian-xiang-gang-dian-ying-1.ctv
 []美亚电影,https://stream1.freetv.fun/mei-ya-dian-ying-2.ctv
 []美亚电影,https://stream1.freetv.fun/mei-ya-dian-ying-7.ctv
 []翡翠,https://stream1.freetv.fun/fei-cui-11.ctv
@@ -14368,7 +14365,6 @@ fun探索娱乐,https://stream1.freetv.fun/funtan-suo-yu-le-6.m3u8
 fun探索娱乐,https://stream1.freetv.fun/funtan-suo-yu-le-7.m3u8
 fusion tv,https://stream1.freetv.fun/fusion-tv-1.m3u8
 fusion tv,https://stream1.freetv.fun/fusion-tv-2.m3u8
-futura,https://stream1.freetv.fun/futura-1.m3u8
 ginx esports tv *4g,https://stream1.freetv.fun/ginx-esports-tv--4g-1.m3u8
 ginx esports tv *4g,https://stream1.freetv.fun/ginx-esports-tv--4g-2.m3u8
 ginx esports tv,https://stream1.freetv.fun/ginx-esports-tv-1.m3u8
@@ -22096,13 +22092,13 @@ zoom,https://stream1.freetv.fun/zoom-2.m3u8
 🤫低调,https://vd2.bdstatic.com/mda-mhaargrart2qrkdz/1080p/cae_h264/1629630942996744682/mda-mhaargrart2qrkdz.mp4
 
 🕒更新时间,#genre#
-20251223 08:35:13,https://vdse.bdstatic.com/h265/bd2f2c89691d337f3d2066e521b0bc4c67.mp4?cd=1&hit_bd265_src=1&mpd=1&pd=19&logid=11251069113325104366&vt=-1&svt=-1&cr_max=1&s_score=-1.000000&pt=0&av=17.8&vid=14358088660947493655&mvt=-1&did=b9e4f3d31e216db4f308eb63eb2e3475&cr=1&h265_s=1&sl=158&sle=1&split=408832
-👨潇然,https://ghproxy.net/https://raw.githubusercontent.com/xiaoran67/update/refs/heads/main/library/vid/about_video1.mp4
-💯推荐,http://em.21dtv.com/songs/60060358.mkv
-🤫低调,http://em.21dtv.com/songs/60020561.mkv
-🟢使用,https://cloud.video.taobao.com//play/u/57349687/p/1/e/6/t/1/240109533631.mp4
-⚠️禁止,https://cloud.video.taobao.com//play/u/57349687/p/1/e/6/t/1/240248465975.mp4
-🚫贩卖,https://vd4.bdstatic.com/mda-mm2a18n5jdh6d8bs/sc/cae_h264/1638516147610932793/mda-mm2a18n5jdh6d8bs.mp4
+20251223 09:57:11,https://vd3.bdstatic.com/mda-pdkfqd76hge0ddue/sc/cae_h264/1682083297529780936/mda-pdkfqd76hge0ddue.mp4?pd=19&vt=1
+👨潇然,https://vd3.bdstatic.com/mda-nkpqf4rt7zt45u17/720p/h264/1669310324025468874/mda-nkpqf4rt7zt45u17.mp4?pd=19&vt=1
+💯推荐,http://em.21dtv.com/songs/60128193.mkv
+🤫低调,https://cloud.video.taobao.com//play/u/57349687/p/1/e/6/t/1/240130092025.mp4
+🟢使用,http://vd3.bdstatic.com/mda-jfjnacpfn6r21dec/mda-jfjnacpfn6r21dec.mp4?playlist=%5B%22hd%22%2C%22sc%22%5D
+⚠️禁止,https://cloud.video.taobao.com//play/u/57349687/p/1/e/6/t/1/239890536417.mp4
+🚫贩卖,https://vdse.bdstatic.com//06b4e9b185b843e694e4d20e9b0a0aac.mp4
 🌆CGTN频道#genre#
 CGTN News,https://english-livebkali.cgtn.com/live/encgtn_0.m3u8
 CGTN Documentary,http://english-livebkali.cgtn.com/live/doccgtn_0.m3u8
