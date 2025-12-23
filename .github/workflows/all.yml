@@ -1,0 +1,290 @@
+name: '🔄 批量跨仓库同步'
+
+on:
+  workflow_dispatch:
+    inputs:
+      sync_all:
+        description: '是否同步所有仓库'
+        type: boolean
+        required: true
+        default: true
+      specific_sync:
+        description: '选择特定同步任务（仅当sync_all=false时有效）'
+        type: choice
+        required: false
+        default: 'core'
+        options:
+          - 'core'
+          - 'inbox'
+          - 'update'
+          - 'xiaoran37'
+          - 'xiaoran67'
+      sync_strategy:
+        description: '同步策略'
+        type: choice
+        required: true
+        default: '增量'
+        options:
+          - '增量'
+          - '覆盖'
+      commit_template:
+        description: '提交信息模板'
+        type: choice
+        required: true
+        default: '仅时间'
+        options:
+          - '仅时间'
+          - '同步说明'
+          - '自定义'
+      custom_commit_msg:
+        description: '自定义提交信息（选"自定义"时填写）'
+        type: string
+        required: false
+        default: ''
+
+env:
+  SOURCE_ACCOUNT: 'xiaoran67'
+  TARGET_ACCOUNT: 'xiaoran37'
+  SOURCE_TOKEN_NAME: 'XIAORAN67_GITHUB_TOKEN'
+  TARGET_TOKEN_NAME: 'XIAORAN37_GITHUB_TOKEN'
+  BRANCH: 'main'
+  TARGET_PRIVATE: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - { repo: 'core' }
+          - { repo: 'inbox' }
+          - { repo: 'update' }
+          - { repo: 'xiaoran37' }
+          - { repo: 'xiaoran67' }
+    # 移除复杂的if条件，改为在steps中控制
+    steps:
+      # 0. 检查是否应该执行当前仓库的同步
+      - name: 🔍 检查执行条件
+        id: check_condition
+        run: |
+          REPO_NAME="${{ matrix.repo }}"
+          
+          # 如果选择同步所有，或者选择特定任务且与当前仓库匹配
+          if [ "${{ inputs.sync_all }}" = "true" ] || [ "${{ inputs.specific_sync }}" = "$REPO_NAME" ]; then
+            echo "执行同步：$REPO_NAME"
+            echo "should_run=true" >> $GITHUB_ENV
+          else
+            echo "跳过同步：$REPO_NAME"
+            echo "should_run=false" >> $GITHUB_ENV
+          fi
+
+      # 只有should_run=true时才继续执行
+      - name: 🧩 设置仓库配置
+        if: env.should_run == 'true'
+        run: |
+          echo "SOURCE_REPO=${{ env.SOURCE_ACCOUNT }}/${{ matrix.repo }}" >> $GITHUB_ENV
+          echo "TARGET_REPO=${{ env.TARGET_ACCOUNT }}/${{ matrix.repo }}" >> $GITHUB_ENV
+
+      # 2. 解析配置（严格格式校验）
+      - name: 🧩 解析配置信息
+        if: env.should_run == 'true'
+        id: parse_config
+        run: |
+          echo "source_user=${{ env.SOURCE_ACCOUNT }}" >> $GITHUB_ENV
+          echo "source_repo=${{ matrix.repo }}" >> $GITHUB_ENV
+          echo "source_branch=${{ env.BRANCH }}" >> $GITHUB_ENV
+          
+          echo "target_user=${{ env.TARGET_ACCOUNT }}" >> $GITHUB_ENV
+          echo "target_repo=${{ matrix.repo }}" >> $GITHUB_ENV
+          echo "target_branch=${{ env.BRANCH }}" >> $GITHUB_ENV
+          
+          echo "source_token_name=${{ env.SOURCE_TOKEN_NAME }}" >> $GITHUB_ENV
+          echo "target_token_name=${{ env.TARGET_TOKEN_NAME }}" >> $GITHUB_ENV
+
+      # 3. 校验Token（避免无权限）
+      - name: 🔑 校验Token存在性
+        if: env.should_run == 'true'
+        run: |
+          if [ -z "${{ secrets[env.SOURCE_TOKEN_NAME] }}" ]; then
+            echo "❌ 错误：源仓库Token（${{ env.SOURCE_TOKEN_NAME }}）不存在" && exit 1
+          fi
+          if [ -z "${{ secrets[env.TARGET_TOKEN_NAME] }}" ]; then
+            echo "❌ 错误：目标仓库Token（${{ env.TARGET_TOKEN_NAME }}）不存在" && exit 1
+          fi
+          echo "✅ Token校验通过"
+
+      # 4. 检查/创建目标仓库（自动初始化）
+      - name: 📦 检查并创建目标仓库
+        if: env.should_run == 'true'
+        run: |
+          TARGET_TOKEN="${{ secrets[env.target_token_name] }}"
+          REPO_CHECK_URL="https://api.github.com/repos/${{ env.target_user }}/${{ env.target_repo }}"
+          REPO_EXISTS=$(curl -s -o /dev/null -w "%{http_code}" -H "Authorization: token $TARGET_TOKEN" "$REPO_CHECK_URL")
+          
+          if [ "$REPO_EXISTS" -eq 404 ]; then
+            echo "ℹ️ 目标仓库 ${{ env.target_repo }} 不存在，开始创建..."
+            CREATE_BODY=$(jq -n --arg name "${{ env.target_repo }}" --argjson private ${{ env.TARGET_PRIVATE }} --arg default_branch "${{ env.target_branch }}" '{
+              "name": $name, "private": $private, "auto_init": true, "default_branch": $default_branch
+            }')
+            CREATE_RESPONSE=$(curl -s -w "%{http_code}" -o create_result.json -X POST \
+              -H "Authorization: token $TARGET_TOKEN" \
+              -H "Accept: application/vnd.github+json" \
+              "https://api.github.com/user/repos" \
+              -d "$CREATE_BODY")
+            
+            if [ "$CREATE_RESPONSE" -eq 201 ]; then
+              echo "✅ 目标仓库 ${{ env.target_repo }} 创建成功"
+            else
+              echo "❌ 目标仓库 ${{ env.target_repo }} 创建失败：$(cat create_result.json)" && exit 1
+            fi
+          elif [ "$REPO_EXISTS" -eq 200 ]; then
+            echo "ℹ️ 目标仓库 ${{ env.target_repo }} 已存在，跳过创建"
+          else
+            echo "❌ 检查仓库状态失败，HTTP码：$REPO_EXISTS" && exit 1
+          fi
+
+      # 5. 检出源/目标仓库（确保最新代码）
+      - name: 📥 检出源仓库
+        if: env.should_run == 'true'
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ env.source_user }}/${{ env.source_repo }}
+          ref: ${{ env.source_branch }}
+          path: source_repo
+          token: ${{ secrets[env.SOURCE_TOKEN_NAME] }}
+          fetch-depth: 0
+          clean: true
+
+      - name: 📥 检出目标仓库
+        if: env.should_run == 'true'
+        run: |
+          TARGET_TOKEN="${{ secrets[env.target_token_name] }}"
+          git clone --branch ${{ env.target_branch }} \
+            "https://$TARGET_TOKEN@github.com/${{ env.target_user }}/${{ env.target_repo }}.git" \
+            target_repo
+          cd target_repo && git pull origin ${{ env.target_branch }} && cd ..
+          echo "✅ 目标仓库 ${{ env.target_repo }} 检出完成"
+
+      # 6. 安装依赖（仅rsync+jq，轻量高效）
+      - name: 🛠️ 安装依赖
+        if: env.should_run == 'true'
+        run: |
+          sudo apt-get update && sudo apt-get install -y rsync jq
+
+      # 7. 核心同步（时间戳+大小双校验，高效精准）
+      - name: 🚀 执行同步（时间戳+大小双校验）
+        if: env.should_run == 'true'
+        run: |
+          echo "🔄 开始同步：${{ env.source_repo }}"
+          
+          # 定义源/目标路径
+          SOURCE_PATH="source_repo"
+          TARGET_PATH="target_repo"
+          
+          # 关键：统一时区+保留源文件时间戳（避免后续误判）
+          export TZ='Asia/Shanghai'
+          
+          if [ "${{ inputs.sync_strategy }}" = "增量" ]; then
+            echo "📊 同步策略：增量同步（时间戳+大小校验）"
+            # rsync核心逻辑：时间戳不同 或 文件大小不同 → 同步（精准高效）
+            rsync -av --times --exclude=".git/" "${SOURCE_PATH}/" "${TARGET_PATH}/"
+          else
+            echo "📊 同步策略：覆盖同步（全量替换）"
+            # 覆盖同步：全量替换+清空目标多余文件
+            rsync -av --delete --force --times --exclude=".git/" "${SOURCE_PATH}/" "${TARGET_PATH}/"
+          fi
+          
+          # 检测变化（含新增目录/文件）
+          cd target_repo
+          if git status --porcelain | grep -q .; then
+            echo "CHANGES_DETECTED=true" >> $GITHUB_ENV
+            echo "🔄 检测到变更"
+          else
+            echo "CHANGES_DETECTED=false" >> $GITHUB_ENV
+            echo "ℹ️ 未检测到变更"
+          fi
+
+      # 8. 推送更新（容错处理）
+      - name: 📤 推送更新到目标仓库
+        if: env.should_run == 'true' && env.CHANGES_DETECTED == 'true'
+        run: |
+          cd target_repo
+          echo "🔄 准备推送 ${{ env.target_repo }}"
+          
+          # 二次确认变更（避免空提交）
+          if ! git status --porcelain | grep -q .; then
+            echo "ℹ️ 无实际变更，跳过提交"
+            exit 0
+          fi
+          
+          # 配置Git身份
+          git config user.name "Sync Bot"
+          git config user.email "sync@noreply.github.com"
+          git add . --force  # 强制添加新增目录/文件
+          
+          # 生成提交信息
+          CURRENT_DATE=$(TZ='Asia/Shanghai' date +'%Y-%m-%d %H:%M:%S')
+          SRC_INFO="${{ env.source_user }}/${{ env.source_repo }}:${{ env.source_branch }}"
+          TGT_INFO="${{ env.target_user }}/${{ env.target_repo }}:${{ env.target_branch }}"
+          
+          if [ "${{ inputs.commit_template }}" = "仅时间" ]; then
+            COMMIT_MSG="🚀 ${{ env.target_repo }} ${CURRENT_DATE}"
+          elif [ "${{ inputs.commit_template }}" = "同步说明" ]; then
+            COMMIT_MSG="🔄 同步（${{ inputs.sync_strategy }}） ${{ env.source_repo }} → ${{ env.target_repo }}（${CURRENT_DATE}）"
+          else
+            COMMIT_MSG="${{ inputs.custom_commit_msg }}"
+            [ -z "$COMMIT_MSG" ] && COMMIT_MSG="🚀 ${{ env.target_repo }} ${CURRENT_DATE}"
+          fi
+          
+          echo "📝 提交信息：$COMMIT_MSG"
+          
+          # 提交并推送（覆盖策略强制推送）
+          git commit -m "$COMMIT_MSG"
+          PUSH_URL="https://${{ secrets[env.target_token_name] }}@github.com/${{ env.target_user }}/${{ env.target_repo }}.git"
+          
+          if [ "${{ inputs.sync_strategy }}" = '覆盖' ]; then
+            echo "⚡ 使用强制推送（覆盖策略）"
+            git push "$PUSH_URL" ${{ env.target_branch }} --force
+          else
+            echo "⚡ 使用普通推送"
+            git push "$PUSH_URL" ${{ env.target_branch }}
+          fi
+          
+          echo "✅ ${{ env.target_repo }} 同步完成"
+
+      # 9. 输出同步结果
+      - name: 📊 同步结果汇总
+        if: env.should_run == 'true'
+        run: |
+          if [ "$CHANGES_DETECTED" = "true" ]; then
+            echo "✅ ${{ env.target_repo }} 同步完成！"
+            echo "📌 源仓库：${{ env.source_user }}/${{ env.source_repo }}:${{ env.source_branch }}"
+            echo "📌 目标仓库：${{ env.target_user }}/${{ env.target_repo }}:${{ env.target_branch }}"
+            echo "📌 同步策略：${{ inputs.sync_strategy }}"
+          else
+            echo "ℹ️ ${{ env.target_repo }}：源文件与目标文件完全一致（时间戳+大小匹配），无需同步"
+          fi
+
+  # 最终汇总报告
+  summary:
+    runs-on: ubuntu-latest
+    needs: sync
+    if: always()
+    steps:
+      - name: 📋 同步任务汇总报告
+        run: |
+          echo "## 🔄 批量同步任务完成报告"
+          echo "---"
+          echo "**执行时间：** $(date '+%Y-%m-%d %H:%M:%S')"
+          echo "**同步策略：** ${{ inputs.sync_strategy }}"
+          echo "**提交模板：** ${{ inputs.commit_template }}"
+          echo ""
+          echo "### 📊 同步仓库："
+          echo "- core"
+          echo "- inbox"
+          echo "- update"
+          echo "- xiaoran37"
+          echo "- xiaoran67"
+          echo ""
+          echo "---"
+          echo "由 GitHub Actions Sync Bot 自动执行"
