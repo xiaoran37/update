@@ -1,19 +1,19 @@
 # 完整检测统计日志
-# 生成时间: 20260608 08:20:16
-===== 检测开始: 20260608 06:48:27 =====
+# 生成时间: 20260615 08:59:28
+===== 检测开始: 20260615 07:24:53 =====
 处理远程URL: https://raw.githubusercontent.com/xiaoran67/update/refs/heads/main/output/full.txt
-远程订阅统计: 13282,https://raw.githubusercontent.com/xiaoran67/update/refs/heads/main/output/full.txt
+远程订阅统计: 14372,https://raw.githubusercontent.com/xiaoran67/update/refs/heads/main/output/full.txt
 处理远程URL: https://raw.githubusercontent.com/xiaoran67/update/refs/heads/main/output/result.txt
-远程订阅统计: 2625,https://raw.githubusercontent.com/xiaoran67/update/refs/heads/main/output/result.txt
+远程订阅统计: 2619,https://raw.githubusercontent.com/xiaoran67/update/refs/heads/main/output/result.txt
 脚本目录: /home/runner/work/update/update/assets/livesource/blacklist
-本地black文件行数: 44043
-初始总行数（远程+本地）: 59950
-分解#后行数: 60023
-去$后行数: 60023
-去重后行数: 57417
+本地black文件行数: 43600
+初始总行数（远程+本地）: 60591
+分解#后行数: 60661
+去$后行数: 60661
+去重后行数: 57848
 并发线程数: 30
-检测结果: 成功13815条, 失败43600条
+检测结果: 成功13194条, 失败44651条
 结果文件保存: /home/runner/work/update/update/assets/livesource/blacklist/whitelist_auto.txt, /home/runner/work/update/update/assets/livesource/blacklist/whitelist_auto_tv.txt, /home/runner/work/update/update/assets/livesource/blacklist/blacklist_auto.txt
-历史记录保存: /home/runner/work/update/update/assets/livesource/blacklist/history/blacklist/20260608_08_20_16_whitelist_auto.txt, /home/runner/work/update/update/assets/livesource/blacklist/history/blacklist/20260608_08_20_16_blacklist_auto.txt
-执行时间: 91分49秒 (开始: 20260608_06_48_27, 结束: 20260608_08_20_16)
-故障主机统计保存: /home/runner/work/update/update/assets/livesource/blacklist/blackhost/20260608_08_20_16_blackhost_count.txt
+历史记录保存: /home/runner/work/update/update/assets/livesource/blacklist/history/blacklist/20260615_08_59_28_whitelist_auto.txt, /home/runner/work/update/update/assets/livesource/blacklist/history/blacklist/20260615_08_59_28_blacklist_auto.txt
+执行时间: 94分35秒 (开始: 20260615_07_24_53, 结束: 20260615_08_59_28)
+故障主机统计保存: /home/runner/work/update/update/assets/livesource/blacklist/blackhost/20260615_08_59_28_blackhost_count.txt
